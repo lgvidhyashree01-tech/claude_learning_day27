@@ -1,0 +1,13 @@
+*What you learned*
+1. *Narrative-driven UX*: Used Claude to turn a dry healthcare process into an interactive story with characters, dialogue, and choices
+2. *Branching logic*: Built choose-your-own-adventure mechanics - 8 chapters, 2 options per scene, multiple paths to explore
+3. *EdTech approach*: Combined storytelling with education - Priya’s explanations teach PA concepts while Rahul’s journey shows patient impact
+4. *State tracking*: Implemented progress bar + scene management to show users where they are in the workflow story
+5. *Continuity with context*: Continued in Day 26 chat so Claude reused prior workflow knowledge to build richer narrative layer
+6. *Engagement > documentation*: Same PA concepts as Day 26, but story format makes it 10x easier to understand and remember
+7. *Ship the learning loop*: HTML + screenshots + http://day27.md → GitHub. Turning compliance training into interactive content
+
+*Tools used*  
+*Claude.ai* - Story + branching dialogue generation  
+*HTML5 + CSS3 + Vanilla JS* - Story engine, choice buttons, progress tracking, scene transitions  
+*Browser* - Interactive narrative testing    
