@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Prior Authorization Story Simulator</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --bg: #F8FBFF;
+    --primary: #2F80ED;
+    --panel: #EAF3FF;
+    --success: #2ECC71;
+    --warning: #F5B041;
+    --danger: #E74C3C;
+    --text: #111111;
+    --subtext: #4A5568;
+    --border: #D6E4F7;
+    --card: #FFFFFF;
+    --shadow: 0 2px 12px rgba(47,128,237,0.10);
+  }
+  [data-theme="dark"] {
+    --bg: #0F172A;
+    --primary: #60A5FA;
+    --panel: #1E293B;
+    --text: #F1F5F9;
+    --subtext: #94A3B8;
+    --border: #334155;
+    --card: #1E293B;
+    --shadow: 0 2px 12px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+  /* HEADER */
+  #header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--card);
+    border-bottom: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
+    padding: 0 1.5rem;
+    height: 60px;
+    display: flex; align-items: center; gap: 1rem;
+  }
+  .logo { font-size: 1.3rem; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; white-space: nowrap; }
+  .logo span { color: var(--text); }
+  .header-stat { display: flex; flex-direction: column; align-items: center; }
+  .header-stat-label { font-size: 0.6rem; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.08em; }
+  .header-stat-value { font-size: 0.85rem; font-weight: 700; color: var(--primary); }
+  .progress-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; min-width: 60px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), #56CCF2); border-radius: 99px; transition: width 0.6s cubic-bezier(.4,0,.2,1); }
+  .btn-sm {
+    padding: 0.3rem 0.8rem; border-radius: 8px; font-size: 0.78rem; font-weight: 600;
+    border: 1.5px solid var(--border); background: var(--card); color: var(--text);
+    cursor: pointer; transition: all 0.18s; white-space: nowrap;
+  }
+  .btn-sm:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
+  /* LAYOUT */
+  #main { display: flex; height: calc(100vh - 60px); overflow: hidden; }
+  #left-panel {
+    width: 25%; min-width: 200px; max-width: 280px;
+    background: var(--panel);
+    border-right: 1.5px solid var(--border);
+    overflow-y: auto; padding: 1rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+  }
+  #center-panel {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg); overflow: hidden;
+  }
+  #chat-feed {
+    flex: 1; overflow-y: auto; padding: 1.2rem 1.4rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+    scroll-behavior: smooth;
+  }
+  #choices-area {
+    padding: 0.75rem 1.4rem 1rem;
+    border-top: 1.5px solid var(--border);
+    background: var(--card);
+  }
+  #right-panel {
+    width: 25%; min-width: 200px; max-width: 280px;
+    background: var(--panel);
+    border-left: 1.5px solid var(--border);
+    overflow-y: auto; padding: 1rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
+  }
+  /* CHAT BUBBLES */
+  .chat-row { display: flex; align-items: flex-end; gap: 0.5rem; animation: fadeUp 0.35s ease; }
+  .chat-row.left { flex-direction: row; }
+  .chat-row.right { flex-direction: row-reverse; }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%; font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  }
+  .bubble {
+    max-width: 78%; padding: 0.65rem 0.95rem; border-radius: 16px;
+    font-size: 0.88rem; line-height: 1.55; box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .bubble.rahul {
+    background: #DBEAFE; color: #1E3A5F;
+    border-bottom-left-radius: 4px;
+  }
+  [data-theme="dark"] .bubble.rahul { background: #1E3A5F; color: #DBEAFE; }
+  .bubble.priya {
+    background: var(--card); color: var(--text);
+    border: 1.5px solid var(--border);
+    border-bottom-right-radius: 4px;
+  }
+  .sender-name { font-size: 0.68rem; font-weight: 700; color: var(--subtext); margin-bottom: 0.15rem; }
+  /* NARRATOR */
+  .narrator-block {
+    text-align: center; padding: 0.5rem 1.5rem;
+    font-style: italic; font-size: 0.83rem; color: var(--subtext);
+    animation: fadeUp 0.35s ease;
+  }
+  .scene-marker {
+    text-align: center; margin: 0.5rem 0;
+    animation: fadeUp 0.35s ease;
+  }
+  .scene-marker-inner {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    background: var(--primary); color: #fff;
+    padding: 0.35rem 1.1rem; border-radius: 99px;
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.04em;
+  }
+  /* INFO CARDS IN FEED */
+  .feed-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 14px; padding: 0.85rem 1rem;
+    font-size: 0.83rem; line-height: 1.55;
+    box-shadow: var(--shadow); animation: fadeUp 0.35s ease;
+    color: var(--text);
+  }
+  .feed-card.success { border-color: var(--success); background: #F0FFF8; }
+  [data-theme="dark"] .feed-card.success { background: #052e16; }
+  .feed-card.danger { border-color: var(--danger); background: #FFF5F5; }
+  [data-theme="dark"] .feed-card.danger { background: #2d0a0a; }
+  .feed-card.warning { border-color: var(--warning); background: #FFFBF0; }
+  [data-theme="dark"] .feed-card.warning { background: #2d1f0a; }
+  .feed-card.info { border-color: var(--primary); background: var(--panel); }
+  .feed-card-title { font-weight: 800; font-size: 0.82rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem; }
+  /* TYPING */
+  .typing-indicator { display: flex; align-items: center; gap: 0.3rem; padding: 0.5rem 0.8rem; }
+  .typing-dot { width: 7px; height: 7px; background: var(--primary); border-radius: 50%; animation: bounce 1.1s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.18s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-7px); } }
+  /* CHOICES */
+  .choice-btn {
+    width: 100%; text-align: left; padding: 0.7rem 1rem;
+    border-radius: 12px; border: 2px solid var(--border);
+    background: var(--card); color: var(--text);
+    font-size: 0.84rem; font-weight: 600; cursor: pointer;
+    transition: all 0.18s; margin-bottom: 0.45rem;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .choice-btn:hover { border-color: var(--primary); background: var(--panel); color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(47,128,237,0.15); }
+  .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .choice-btn.selected { border-color: var(--primary); background: var(--primary); color: #fff; }
+  /* SIDEBAR CARDS */
+  .side-card {
+    background: var(--card); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 0.75rem; font-size: 0.8rem;
+  }
+  .side-card-title { font-weight: 800; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary); margin-bottom: 0.5rem; }
+  /* WORKFLOW DIAGRAM */
+  .workflow-step {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.35rem 0.5rem; border-radius: 8px;
+    font-size: 0.75rem; font-weight: 600;
+    border: 1.5px solid var(--border); background: var(--card);
+    margin-bottom: 0.3rem; transition: all 0.3s;
+  }
+  .workflow-step.active { border-color: var(--primary); background: var(--panel); color: var(--primary); }
+  .workflow-step.done { border-color: var(--success); background: #F0FFF8; color: #166534; }
+  [data-theme="dark"] .workflow-step.done { background: #052e16; color: #86efac; }
+  .workflow-arrow { text-align: center; font-size: 0.7rem; color: var(--subtext); margin: -0.05rem 0; }
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 700; }
+  .badge.blue { background: #DBEAFE; color: #1E40AF; }
+  .badge.green { background: #D1FAE5; color: #065F46; }
+  .badge.yellow { background: #FEF3C7; color: #92400E; }
+  .badge.red { background: #FEE2E2; color: #991B1B; }
+  [data-theme="dark"] .badge.blue { background: #1e3a5f; color: #93C5FD; }
+  [data-theme="dark"] .badge.green { background: #052e16; color: #86efac; }
+  /* GLOSSARY MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s;
+  }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  .modal-box {
+    background: var(--card); border-radius: 18px; padding: 1.5rem;
+    max-width: 440px; width: 90%; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+  }
+  .modal-box h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: 1rem; color: var(--primary); }
+  .glossary-term { border-bottom: 1px solid var(--border); padding: 0.6rem 0; }
+  .glossary-term:last-child { border-bottom: none; }
+  .gt-word { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+  .gt-def { font-size: 0.8rem; color: var(--subtext); margin-top: 0.15rem; }
+  /* CERTIFICATE */
+  .certificate {
+    background: linear-gradient(135deg, #EAF3FF 0%, #F8FBFF 100%);
+    border: 2px solid var(--primary); border-radius: 18px;
+    padding: 1.5rem; text-align: center; position: relative; overflow: hidden;
+  }
+  [data-theme="dark"] .certificate { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+  .certificate::before {
+    content: ''; position: absolute; inset: 6px; border: 1px dashed var(--primary);
+    border-radius: 13px; opacity: 0.4; pointer-events: none;
+  }
+  /* CONFETTI */
+  .confetti-piece {
+    position: fixed; width: 8px; height: 8px; border-radius: 2px;
+    animation: confettiFall linear forwards;
+    z-index: 999; pointer-events: none;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+  /* CHECKLIST */
+  .check-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0; font-size: 0.81rem; }
+  .check-box { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; transition: all 0.3s; }
+  .check-box.checked { background: var(--success); border-color: var(--success); color: #fff; }
+  /* TIMELINE */
+  .timeline-item { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.5rem; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); flex-shrink: 0; margin-top: 3px; transition: all 0.3s; }
+  .tl-dot.done { background: var(--success); }
+  .tl-dot.active { background: var(--primary); box-shadow: 0 0 0 3px rgba(47,128,237,0.2); }
+  .tl-label { font-size: 0.76rem; color: var(--subtext); }
+  .tl-label.done { color: var(--text); font-weight: 600; }
+  .tl-label.active { color: var(--primary); font-weight: 700; }
+  /* SCORE RING */
+  .score-ring { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  .score-ring svg { transform: rotate(-90deg); }
+  .score-ring-val { position: absolute; font-size: 1rem; font-weight: 800; color: var(--primary); }
+  /* SCROLLBAR */
+  #chat-feed::-webkit-scrollbar { width: 5px; }
+  #chat-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    #left-panel, #right-panel { display: none; }
+  }
+  @media (max-width: 600px) {
+    #header { padding: 0 0.75rem; gap: 0.5rem; }
+    .logo { font-size: 1rem; }
+  }
+  /* METRICS GRID */
+  .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .metric-box { background: var(--card); border: 1.5px solid var(--border); border-radius: 10px; padding: 0.6rem; text-align: center; }
+  .metric-val { font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+  .metric-lbl { font-size: 0.65rem; color: var(--subtext); margin-top: 0.1rem; }
+  /* STEP THERAPY VIS */
+  .step-therapy-row { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; font-size: 0.78rem; }
+  .st-pill { padding: 0.2rem 0.6rem; border-radius: 99px; font-size: 0.72rem; font-weight: 700; }
+  /* APPEAL TRACKER */
+  .appeal-step { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+  .appeal-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+  .appeal-icon.pending { background: var(--border); }
+  .appeal-icon.active-ap { background: #FEF3C7; }
+  .appeal-icon.complete-ap { background: #D1FAE5; }
+  .appeal-text { font-size: 0.78rem; color: var(--subtext); }
+  .appeal-text.complete-ap { color: var(--text); font-weight: 600; }
+  .choices-label { font-size: 0.72rem; font-weight: 700; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+  <div class="logo">PA<span>Sim</span></div>
+  <div class="progress-bar-wrap" title="Overall progress">
+    <div class="progress-bar-fill" id="prog-bar" style="width:0%"></div>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">Progress</span>
+    <span class="header-stat-value" id="prog-pct">0%</span>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">Scene</span>
+    <span class="header-stat-value" id="scene-counter">1 / 8</span>
+  </div>
+  <div class="header-stat">
+    <span class="header-stat-label">Est. Time</span>
+    <span class="header-stat-value" id="est-time">~12 min</span>
+  </div>
+  <div class="header-stat" id="level-stat">
+    <span class="header-stat-label">Level</span>
+    <span class="header-stat-value">Beginner</span>
+  </div>
+  <button class="btn-sm" id="glossary-btn">📖 Glossary</button>
+  <button class="btn-sm" id="dark-btn">🌙</button>
+  <button class="btn-sm" id="restart-btn">↺ Restart</button>
+</header>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- LEFT PANEL -->
+  <aside id="left-panel">
+    <div class="side-card">
+      <div class="side-card-title">📍 Current Scene</div>
+      <div id="lp-scene-title" style="font-weight:700;font-size:0.85rem;">Doctor Visit</div>
+      <div id="lp-scene-loc" style="font-size:0.75rem;color:var(--subtext);margin-top:0.2rem;">📍 City Medical Center</div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">⚡ Workflow</div>
+      <div id="workflow-diagram"></div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">📅 Timeline</div>
+      <div id="timeline-track"></div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">🏆 Current Outcome</div>
+      <div id="lp-outcome" style="font-size:0.8rem;color:var(--subtext);">Story in progress…</div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">📚 Key Terms Learned</div>
+      <div id="lp-terms" style="display:flex;flex-wrap:wrap;gap:0.3rem;"></div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">🎯 Learning Objectives</div>
+      <div id="lp-objectives" style="font-size:0.77rem;color:var(--subtext);line-height:1.6;"></div>
+    </div>
+
+    <div class="side-card">
+      <div class="side-card-title">📊 Score</div>
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div class="score-ring">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="21" fill="none" stroke="var(--border)" stroke-width="5"/>
+            <circle id="score-arc" cx="26" cy="26" r="21" fill="none" stroke="var(--primary)" stroke-width="5"
+              stroke-dasharray="131.9" stroke-dashoffset="131.9" stroke-linecap="round"
+              style="transition:stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1)"/>
+          </svg>
+          <span class="score-ring-val" id="score-val">0</span>
+        </div>
+        <div>
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text);">Knowledge Score</div>
+          <div style="font-size:0.7rem;color:var(--subtext);margin-top:0.1rem;">Out of 100</div>
+          <div id="badges-area" style="display:flex;flex-wrap:wrap;gap:0.25rem;margin-top:0.3rem;"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CENTER PANEL -->
+  <main id="center-panel">
+    <div id="chat-feed"></div>
+    <div id="choices-area"></div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside id="right-panel">
+    <div class="side-card" id="rp-what-happened">
+      <div class="side-card-title">💡 What Happened</div>
+      <div id="rp-wh-body" style="font-size:0.8rem;color:var(--subtext);">Follow the story to see updates here.</div>
+    </div>
+    <div class="side-card" id="rp-why-matters">
+      <div class="side-card-title">❓ Why It Matters</div>
+      <div id="rp-wm-body" style="font-size:0.8rem;color:var(--subtext);">Healthcare insights will appear as you progress.</div>
+    </div>
+    <div class="side-card" id="rp-insight">
+      <div class="side-card-title">🏥 Healthcare Insight</div>
+      <div id="rp-ins-body" style="font-size:0.8rem;color:var(--subtext);">Keep reading to unlock insights.</div>
+    </div>
+    <div class="side-card" id="rp-defs">
+      <div class="side-card-title">📖 Quick Definitions</div>
+      <div id="rp-defs-body" style="font-size:0.78rem;color:var(--subtext);"></div>
+    </div>
+    <div class="side-card" id="rp-industry">
+      <div class="side-card-title">📈 Industry Notes</div>
+      <div id="rp-ind-body" style="font-size:0.78rem;color:var(--subtext);"></div>
+    </div>
+  </aside>
+</div>
+
+<!-- GLOSSARY MODAL -->
+<div class="modal-overlay" id="glossary-modal" style="display:none;">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h2>📖 Healthcare Glossary</h2>
+      <button class="btn-sm" id="close-glossary">✕ Close</button>
+    </div>
+    <div id="glossary-content"></div>
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+const state = {
+  currentScene: 0,
+  progress: 0,
+  score: 0,
+  confidence: 0,
+  termsLearned: [],
+  choiceHistory: [],
+  sceneStartTime: Date.now(),
+  completedScenes: [],
+  badges: [],
+  appealSteps: [false, false, false],
+  checklistItems: [false, false, false, false],
+  darkMode: false,
+};
+
+// ==================== GLOSSARY ====================
+const GLOSSARY = [
+  { term: "Prior Authorization (PA)", def: "A requirement by health insurers that providers obtain approval before certain treatments, medications, or procedures are covered." },
+  { term: "Payer", def: "The insurance company or health plan that pays for medical services (e.g., StarCare Health)." },
+  { term: "Provider", def: "A doctor, hospital, or healthcare professional who delivers medical care." },
+  { term: "Step Therapy", def: "A cost-control approach where patients must try less expensive treatments before getting coverage for costlier options." },
+  { term: "ICD-10", def: "International Classification of Diseases, 10th edition — standardized codes used to document diagnoses." },
+  { term: "Humira (adalimumab)", def: "A biologic medication used to treat rheumatoid arthritis and other inflammatory conditions. Requires PA due to high cost (~$6,000/month)." },
+  { term: "Rheumatoid Arthritis (RA)", def: "An autoimmune disease where the immune system attacks the joints, causing pain, swelling, and damage." },
+  { term: "Letter of Medical Nece}
